@@ -1,6 +1,6 @@
 package Catalyst::Authentication::Credential::OpenID;
 use strict;
-use warnings; no warnings "uninitialized"; # 321
+# use warnings; no warnings "uninitialized"; # for testing, not production
 use parent "Class::Accessor::Fast";
 
 BEGIN {
