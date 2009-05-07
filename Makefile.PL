@@ -1,4 +1,4 @@
-use inc::Module::Install;
+use inc::Module::Install 0.87;
 
 name            "Catalyst-Authentication-Credential-OpenID";
 all_from        "lib/Catalyst/Authentication/Credential/OpenID.pm";
