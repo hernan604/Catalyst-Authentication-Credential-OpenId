@@ -1,4 +1,4 @@
-use inc::Module::Install;
+use inc::Module::Install 0.87;
 
 # use lib 'inc';
 # use Devel::AssertOS qw( Linux Unix Cygwin );
