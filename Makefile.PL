@@ -30,6 +30,8 @@ build_requires  "Net::DNS"             => undef;
 build_requires  "IO::Socket::INET"     => undef;
 
 auto_install;
+resources repository => 'http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Authentication-Credential-OpenID/0.10/';
+
 WriteAll;
 
 __END__
