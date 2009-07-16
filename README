@@ -14,3 +14,19 @@ To install this module, run the following commands:
 	make test
 	make install
 
+Catalyst::Authentication::Credential::OpenID
+
+Just say "no" to document drift. See the POD for any details,
+including copyright and licence, beyond installation.
+
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+        # See below for TEST_HTTP info
+	make test
+	make install
+
