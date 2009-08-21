@@ -7,7 +7,7 @@ BEGIN {
     __PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
 }
 
-our $VERSION = "0.14";
+our $VERSION = "0.14_01";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
@@ -33,7 +33,9 @@ sub new : method {
 
     $secret = substr($secret,0,255) if length $secret > 255;
     $self->secret($secret);
-    $self->_config->{ua_class} ||= "LWPx::ParanoidAgent";
+    # If user has no preference we prefer L::PA b/c it can prevent DoS attacks.
+    $self->_config->{ua_class} ||= eval "use LWPx::ParanoidAgent" ?
+        "LWPx::ParanoidAgent" : "LWP::UserAgent";
 
     my $agent_class = $self->_config->{ua_class};
     eval "require $agent_class"
@@ -64,6 +66,10 @@ sub authenticate : method {
         consumer_secret => $self->secret,
     );
 
+    my @extensions = $self->_config->{extensions} ?
+        @{ $self->_config->{extensions} } : $self->_config->{extension_args} ?
+        @{ $self->_config->{extension_args} } : ();
+
     if ( $claimed_uri )
     {
         my $current = $c->uri_for($c->req->uri->path); # clear query/fragment...
@@ -71,8 +77,8 @@ sub authenticate : method {
         my $identity = $csr->claimed_identity($claimed_uri)
             or Catalyst::Exception->throw($csr->err);
 
-        $identity->set_extension_args(@{$self->_config->{extension_args}})
-            if $self->_config->{extension_args};
+        $identity->set_extension_args(\@extensions)
+            if @extensions;
 
         my $check_url = $identity->check_url(
             return_to  => $current . '?openid-check=1',
@@ -98,9 +104,11 @@ sub authenticate : method {
             # This is where we ought to build an OpenID user and verify against the spec.
             my $user = +{ map { $_ => scalar $identity->$_ }
                 qw( url display rss atom foaf declared_rss declared_atom declared_foaf foafmaker ) };
-            
-            for(keys %{$self->{_config}->{extensions}}) {
-                $user->{extensions}->{$_} = $identity->signed_extension_fields($_);
+            # Dude, I did not design the array as hash spec. Don't curse me [apv].
+            my %flat = @extensions;
+            for my $key ( keys %flat )
+            {
+                $user->{extensions}->{$key} = $identity->signed_extension_fields($key);
             }
 
             my $user_obj = $realm->find_user($user, $c);
@@ -134,7 +142,13 @@ Catalyst::Authentication::Credential::OpenID - OpenID credential for Catalyst::P
 
 =head1 VERSION
 
-0.13
+0.14_01
+
+=head1 BACKWARDS COMPATIBILITY CHANGE
+
+B<NB>: The extenstions were previously configured under the key C<extension_args>. They are now configured under C<extensions>. This prevents the need for double configuration but it breaks extensions in your application if you do not change the name. The old version is supported for now but may be phased out at any time.
+
+As previously noted, L</EXTENSIONS TO OPENID>, I have not tested the extensions. I would be grateful for any feedback or, better, tests.
 
 =head1 SYNOPSIS
 
@@ -156,7 +170,7 @@ Somewhere in myapp.conf-
              <credential>
                  class   OpenID
              </credential>
-             ua_class   LWPx::ParanoidAgent
+             ua_class   LWP::UserAgent
          </openid>
      </realms>
  </Plugin::Authentication>
@@ -169,7 +183,7 @@ Or in your myapp.yml if you're using L<YAML> instead-
      openid:
        credential:
          class: OpenID
-       ua_class: LWPx::ParanoidAgent
+       ua_class: LWP::UserAgent
 
 In a controller, perhaps C<Root::openid>-
 
@@ -315,7 +329,7 @@ clear text passwords and one called "openid" which uses... uh, OpenID.
               },
               openid => {
                   consumer_secret => "Don't bother setting",
-                  ua_class => "LWPx::ParanoidAgent",
+                  ua_class => "LWP::UserAgent",
                   ua_args => {
                       whitelisted_hosts => [qw/ 127.0.0.1 localhost /],
                   },
@@ -325,7 +339,7 @@ clear text passwords and one called "openid" which uses... uh, OpenID.
                           class => "OpenID",
                       },
                   },
-                  extension_args => [
+                  extensions => [
                       'http://openid.net/extensions/sreg/1.1',
                       {
                        required => 'email',
@@ -364,18 +378,18 @@ This is the same configuration in the default L<Catalyst> configuration format f
                  whitelisted_hosts   localhost
              </ua_args>
              consumer_secret   Don't bother setting
-             ua_class   LWPx::ParanoidAgent
+             ua_class   LWP::UserAgent
              <credential>
                  <store>
                      class   OpenID
                  </store>
                  class   OpenID
              </credential>
-             <extension_args>
+             <extensions>
                  http://openid.net/extensions/sreg/1.1
                  required   email
                  optional   fullname,nickname,timezone
-             </extension_args>
+             </extensions>
          </openid>
      </realms>
  </Plugin::Authentication>
@@ -402,12 +416,12 @@ And now, the same configuration in L<YAML>. B<NB>: L<YAML> is whitespace sensiti
          store:
            class: OpenID
        consumer_secret: Don't bother setting
-       ua_class: LWPx::ParanoidAgent
+       ua_class: LWP::UserAgent
        ua_args:
          whitelisted_hosts:
            - 127.0.0.1
            - localhost
-       extension_args:
+       extensions:
            - http://openid.net/extensions/sreg/1.1
            - required: email
              optional: fullname,nickname,timezone
@@ -416,7 +430,7 @@ B<NB>: There is no OpenID store yet.
 
 =head2 EXTENSIONS TO OPENID
 
-The L<Simple Registration|http://openid.net/extensions/sreg/1.1> (SREG) extension to OpenID is supported in the L<Net::OpenID> family now. Experimental support for it is included here as of v0.12. SREG is the only supported extension in OpenID 1.1. It's experimental in the sense it's a new interface and barely tested. Support for OpenID extensions is here to stay.
+The Simple Registration--L<http://openid.net/extensions/sreg/1.1>--(SREG) extension to OpenID is supported in the L<Net::OpenID> family now. Experimental support for it is included here as of v0.12. SREG is the only supported extension in OpenID 1.1. It's experimental in the sense it's a new interface and barely tested. Support for OpenID extensions is here to stay.
 
 =head2 MORE ON CONFIGURATION
 
@@ -426,12 +440,13 @@ These are set in your realm. See above.
 
 =item ua_args and ua_class
 
-L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class>. You don't
-have to set it. I recommend that you do B<not> override it. You can
-with any well behaved L<LWP::UserAgent>. You probably should not.
+L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class>
+E<mdash> if it's available, L<LWP::UserAgent> if not. You don't have
+to set it. I recommend that you do B<not> override it. You can with
+any well behaved L<LWP::UserAgent>. You probably should not.
 L<LWPx::ParanoidAgent> buys you many defenses and extra security
 checks. When you allow your application users freedom to initiate
-external requests, you open a big avenue for DoS (denial of service)
+external requests, you open an avenue for DoS (denial of service)
 attacks. L<LWPx::ParanoidAgent> defends against this.
 L<LWP::UserAgent> and any regular subclass of it will not.
 
@@ -446,6 +461,8 @@ longer). This should generally be superior to any fixed string.
 =back
 
 =head1 TODO
+
+Option to suppress fatals.
 
 Support more of the new methods in the L<Net::OpenID> kit.
 
@@ -465,11 +482,11 @@ Roles from provider domains? Mapped? Direct? A generic "openid" auto_role?
 
 To Benjamin Trott (L<Catalyst::Plugin::Authentication::OpenID>), Tatsuhiko Miyagawa (L<Catalyst::Plugin::Authentication::Credential::OpenID>), Brad Fitzpatrick for the great OpenID stuff, Martin Atkins for picking up the code to handle OpenID 2.0, and Jay Kuri and everyone else who has made Catalyst such a wonderful framework.
 
-L<Menno Blom|http://search.cpan.org/~blom/> provided a bug fix and the hook to use OpenID extensions.
+Menno Blom provided a bug fix and the hook to use OpenID extensions.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2008, Ashley Pond V C<< <ashley@cpan.org> >>. Some of Tatsuhiko Miyagawa's work is reused here.
+Copyright (c) 2008-2009, Ashley Pond V C<< <ashley@cpan.org> >>. Some of Tatsuhiko Miyagawa's work is reused here.
 
 This module is free software; you can redistribute it and modify it under the same terms as Perl itself. See L<perlartistic>.
 

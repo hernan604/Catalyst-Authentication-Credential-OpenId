@@ -19,9 +19,9 @@ my $consumer_port = 10000 + int rand(1 + 10000);
 my $provider_port = $consumer_port;
 $provider_port = 10000 + int rand(1 + 10000) until $consumer_port != $provider_port;
 
-my $provider_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Provider/lib $FindBin::Bin/Provider/script/testapp_server.pl -p $consumer_port |";
+my $provider_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Provider/lib $FindBin::Bin/Provider/script/testapp_server.pl -p $consumer_port -d |";
 
-my $consumer_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Consumer/lib $FindBin::Bin/Consumer/script/testapp_server.pl -p $provider_port |";
+my $consumer_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Consumer/lib $FindBin::Bin/Consumer/script/testapp_server.pl -p $provider_port -d |";
 
 my $provider_pid = open my $provider, $provider_pipe
     or die "Unable to spawn standalone HTTP server for Provider: $!";

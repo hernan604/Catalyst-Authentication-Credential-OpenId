@@ -47,7 +47,7 @@ __PACKAGE__->config
                       whitelisted_hosts => [qw/ 127.0.0.1 localhost /],
                       timeout => 10,
                   },
-                  extension_args => [
+                  extensions => [
                       'http://openid.net/extensions/sreg/1.1',
                       {
                        required => 'email',

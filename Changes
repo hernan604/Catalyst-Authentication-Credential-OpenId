@@ -1,5 +1,13 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
+0.14_01 Thu Aug 20 21:30:32 PDT 2009
+      - I had an old Test::Pod that didn't catch unsupported L<>
+        usage; CPAN testers found it.
+      - Changed use of LWPx::PA when a ua_class isn't set to test for
+        its successful eval and to use LWP::UserAgent on failure.
+      - Rearranged the extensions and extention_args so there is no
+        duplication necessary in the config.
+
 0.14  Tue Aug 18 22:37:51 PDT 2009
       - Split live tests into two test apps to avoid the need to fork
         to have a self-answering server; crudely done, it's the same
