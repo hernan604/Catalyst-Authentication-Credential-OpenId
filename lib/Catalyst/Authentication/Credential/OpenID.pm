@@ -7,7 +7,7 @@ BEGIN {
     __PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
 }
 
-our $VERSION = "0.14_01";
+our $VERSION = "0.14_02";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
@@ -77,7 +77,7 @@ sub authenticate : method {
         my $identity = $csr->claimed_identity($claimed_uri)
             or Catalyst::Exception->throw($csr->err);
 
-        $identity->set_extension_args(\@extensions)
+        $identity->set_extension_args(@extensions)
             if @extensions;
 
         my $check_url = $identity->check_url(
@@ -142,7 +142,7 @@ Catalyst::Authentication::Credential::OpenID - OpenID credential for Catalyst::P
 
 =head1 VERSION
 
-0.14_01
+0.14_02
 
 =head1 BACKWARDS COMPATIBILITY CHANGE
 

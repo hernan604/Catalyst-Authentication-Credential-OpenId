@@ -1,5 +1,8 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
+0.14_02 Sun Aug 23 17:43:46 PDT 2009
+      - Fixed #48952.
+
 0.14_01 Thu Aug 20 21:30:32 PDT 2009
       - I had an old Test::Pod that didn't catch unsupported L<>
         usage; CPAN testers found it.
