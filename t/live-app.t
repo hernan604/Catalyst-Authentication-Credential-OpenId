@@ -19,9 +19,9 @@ my $consumer_port = 10000 + int rand(1 + 10000);
 my $provider_port = $consumer_port;
 $provider_port = 10000 + int rand(1 + 10000) until $consumer_port != $provider_port;
 
-my $provider_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Provider/lib $FindBin::Bin/Provider/script/testapp_server.pl -p $consumer_port -d |";
+my $provider_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Provider/lib $FindBin::Bin/Provider/script/testapp_server.pl -p $consumer_port |";
 
-my $consumer_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Consumer/lib $FindBin::Bin/Consumer/script/testapp_server.pl -p $provider_port -d |";
+my $consumer_pipe = "perl -I$FindBin::Bin/../lib -I$FindBin::Bin/Consumer/lib $FindBin::Bin/Consumer/script/testapp_server.pl -p $provider_port |";
 
 my $provider_pid = open my $provider, $provider_pipe
     or die "Unable to spawn standalone HTTP server for Provider: $!";
@@ -35,7 +35,6 @@ diag("Started Consumer with pid $consumer_pid");
 
 # How long to wait for test server to start and timeout for UA.
 my $seconds = 15;
-
 
 diag("Waiting (up to $seconds seconds) for application servers to start...");
 
@@ -53,7 +52,7 @@ if ( $@ )
     die "Could not run test: $@";
 }
 
-my $root = $ENV{CATALYST_SERVER} = "http://localhost:$consumer_port";
+my $openid_consumer = $ENV{CATALYST_SERVER} = "http://localhost:$consumer_port";
 my $openid_server = "http://localhost:$provider_port";
 
 # Tests start --------------------------------------------
@@ -61,10 +60,64 @@ diag("Started...") if $ENV{TEST_VERBOSE};
 
 my $mech = Test::WWW::Mechanize->new(timeout => $seconds);
 
-$mech->get_ok($root, "GET $root");
-$mech->content_contains("not signed in", "Content looks right");
+$mech->get_ok($openid_consumer, "GET $openid_consumer");
 
-$mech->get_ok("$openid_server/login", "GET $root/login");
+$mech->content_contains("You are not signed in.", "Content looks right");
+
+$mech->get_ok("$openid_consumer/signin_openid", "GET $openid_consumer/signin_openid");
+
+{
+    my $claimed_uri = "$openid_server/provider/paco";
+
+    $mech->submit_form_ok({ form_name => "openid",
+                            fields => { openid_identifier => $claimed_uri,
+                            },
+                          },
+                          "Trying OpenID login, 'openid' realm");
+
+    $mech->content_contains("You're not signed in so you can't be verified",
+                            "Can't use OpenID, not signed in at provider");
+}
+
+# Bad claimed URI.
+{
+    my $claimed_uri = "gopher://localhost:443/what?";
+    $mech->back();
+    $mech->submit_form( form_name => "openid",
+                         fields => { openid_identifier => $claimed_uri,
+                                   },
+                       );
+
+    diag("Trying OpenID with ridiculous URI")
+        if $ENV{TEST_VERBOSE};
+
+    # no_identity_server: The provided URL doesn't declare its OpenID identity server.
+
+    is( $mech->status, 500,
+        "Can't use OpenID: bogus_url" );
+}
+
+# Bad claimed URI.
+{
+    my $claimed_uri = "localhost/some/path";
+    $mech->back();
+    $mech->submit_form( form_name => "openid",
+                         fields => { openid_identifier => $claimed_uri,
+                                   },
+                       );
+
+    diag("Trying OpenID with phony URI")
+        if $ENV{TEST_VERBOSE};
+
+    # no_identity_server: The provided URL doesn't declare its OpenID identity server.
+    is( $mech->status, 500,
+        "Can't use OpenID: no_identity_server");
+}
+
+
+
+#
+$mech->get_ok("$openid_server/login", "GET $openid_consumer/login");
 
 # diag($mech->content);
 
@@ -77,7 +130,7 @@ $mech->submit_form_ok({ form_name => "login",
 
 $mech->content_contains("signed in", "Signed in successfully");
 
-$mech->get_ok("$root/signin_openid", "GET $root/signin_openid");
+$mech->get_ok("$openid_consumer/signin_openid", "GET $openid_consumer/signin_openid");
 
 $mech->content_contains("Sign in with OpenID", "Content looks right");
 
@@ -92,15 +145,15 @@ $mech->submit_form_ok({ form_name => "openid",
 $mech->content_contains("You did it with OpenID!",
                         "Successfully signed in with OpenID");
 
-$mech->get_ok($root, "GET $root");
+$mech->get_ok($openid_consumer, "GET $openid_consumer");
 
 $mech->content_contains("provider/paco", "OpenID info is in the user");
 
 # can't be verified
 
-$mech->get_ok("$root/logout", "GET $root/logout");
+$mech->get_ok("$openid_consumer/logout", "GET $openid_consumer/logout");
 
-$mech->get_ok("$root/signin_openid", "GET $root/signin_openid");
+$mech->get_ok("$openid_consumer/signin_openid", "GET $openid_consumer/signin_openid");
 
 $mech->content_contains("Sign in with OpenID", "Content looks right");
 
