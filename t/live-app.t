@@ -11,8 +11,8 @@ plan skip_all => 'set TEST_HTTP to enable this test' unless $ENV{TEST_HTTP};
 eval "use Catalyst::Devel 1.0";
 plan skip_all => 'Catalyst::Devel required' if $@;
 
-plan "no_plan";
-# plan tests => 17;
+# plan "no_plan";
+plan tests => 21;
 
 # One port for consumer app, one for provider.
 my $consumer_port = 10000 + int rand(1 + 10000);

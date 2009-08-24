@@ -1,5 +1,11 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
+0.14_03 Sun Aug 23 21:13:33 PDT 2009
+      - Made errors non-fatal to match behavior of other credentials.
+        Provided legacy setting for those who still prefer it.
+      - Note that tickets #46916 and #45006 were fixed a couple
+        releases back.
+
 0.14_02 Sun Aug 23 17:43:46 PDT 2009
       - Fixed #48952.
 

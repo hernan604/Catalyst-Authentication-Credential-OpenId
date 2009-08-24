@@ -41,6 +41,7 @@ __PACKAGE__->config
                           }
               },
               openid => {
+                  errors_are_fatal => 1,
                   # ua_class => "LWPx::ParanoidAgent",
                   ua_class => "LWP::UserAgent",
                   ua_args => {

@@ -3,9 +3,10 @@ NAME
     Catalyst::Plugin::Authentication framework.
 
 VERSION
-    0.14_02
+    0.14_03
 
-BACKWARDS COMPATIBILITY CHANGE
+BACKWARDS COMPATIBILITY CHANGES
+  EXTENTION_ARGS v EXTENSIONS
     NB: The extenstions were previously configured under the key
     "extension_args". They are now configured under "extensions". This
     prevents the need for double configuration but it breaks extensions in
@@ -14,6 +15,14 @@ BACKWARDS COMPATIBILITY CHANGE
 
     As previously noted, "EXTENSIONS TO OPENID", I have not tested the
     extensions. I would be grateful for any feedback or, better, tests.
+
+  FATALS
+    The problems encountered by failed OpenID operations have always been
+    fatals in the past. This is unexpected behavior for most users as it
+    differs from other credentials. Authentication errors here are no longer
+    fatal. Debug/error output is improved to offset the loss of information.
+    If for some reason you would prefer the legacy/fatal behavior, set the
+    configuration variable "errors_are_fatal" to a true value.
 
 SYNOPSIS
     In MyApp.pm-

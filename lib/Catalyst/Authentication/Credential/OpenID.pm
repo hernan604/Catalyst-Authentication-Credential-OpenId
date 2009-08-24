@@ -60,11 +60,17 @@ sub authenticate : method {
     $claimed_uri ||= $c->req->method eq 'GET' ? 
         $c->req->query_params->{ $field } : $c->req->body_params->{ $field };
 
+
     my $csr = Net::OpenID::Consumer->new(
         ua => $self->_config->{ua_class}->new(%{$self->_config->{ua_args} || {}}),
         args => $c->req->params,
         consumer_secret => $self->secret,
     );
+
+    if ( $self->_config->{extension_args} and $self->debug )
+    {
+        $c->log->info("The configuration key 'extension_args' is deprecated; use 'extensions'");
+    }
 
     my @extensions = $self->_config->{extensions} ?
         @{ $self->_config->{extensions} } : $self->_config->{extension_args} ?
@@ -77,7 +83,15 @@ sub authenticate : method {
         my $identity = $csr->claimed_identity($claimed_uri);
         unless ( $identity )
         {
-            Catalyst::Exception->throw($csr->err);
+            if ( $self->_config->{errors_are_fatal} )
+            {
+                Catalyst::Exception->throw($csr->err);
+            }
+            else
+            {
+                $c->log->error($csr->err . " -- $claimed_uri");
+                $c->detach();
+            }
         }
 
         $identity->set_extension_args(@extensions)
@@ -122,14 +136,16 @@ sub authenticate : method {
             }
             else
             {
-                $c->log->debug("Verified OpenID identity failed to load with find_user; bad user_class? Try 'Null.'") if $c->debug;
+                $c->log->debug("Verified OpenID identity failed to load with find_user; bad user_class? Try 'Null.'") if $self->debug;
                 return;
             }
         }
         else
         {
-            Catalyst::Exception->throw("Error validating identity: " .
-                                       $csr->err);
+            $self->_config->{errors_are_fatal} ?
+                Catalyst::Exception->throw("Error validating identity: " . $csr->err)
+                      :
+                $c->log->error( $csr->err);
         }
     }
     return;
@@ -147,11 +163,17 @@ Catalyst::Authentication::Credential::OpenID - OpenID credential for Catalyst::P
 
 0.14_03
 
-=head1 BACKWARDS COMPATIBILITY CHANGE
+=head1 BACKWARDS COMPATIBILITY CHANGES
+
+=head2 EXTENTION_ARGS v EXTENSIONS
 
 B<NB>: The extenstions were previously configured under the key C<extension_args>. They are now configured under C<extensions>. This prevents the need for double configuration but it breaks extensions in your application if you do not change the name. The old version is supported for now but may be phased out at any time.
 
 As previously noted, L</EXTENSIONS TO OPENID>, I have not tested the extensions. I would be grateful for any feedback or, better, tests.
+
+=head2 FATALS
+
+The problems encountered by failed OpenID operations have always been fatals in the past. This is unexpected behavior for most users as it differs from other credentials. Authentication errors here are no longer fatal. Debug/error output is improved to offset the loss of information. If for some reason you would prefer the legacy/fatal behavior, set the configuration variable C<errors_are_fatal> to a true value.
 
 =head1 SYNOPSIS
 
@@ -443,23 +465,17 @@ These are set in your realm. See above.
 
 =item ua_args and ua_class
 
-L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class>
-E<mdash> if it's available, L<LWP::UserAgent> if not. You don't have
-to set it. I recommend that you do B<not> override it. You can with
-any well behaved L<LWP::UserAgent>. You probably should not.
-L<LWPx::ParanoidAgent> buys you many defenses and extra security
-checks. When you allow your application users freedom to initiate
-external requests, you open an avenue for DoS (denial of service)
-attacks. L<LWPx::ParanoidAgent> defends against this.
-L<LWP::UserAgent> and any regular subclass of it will not.
+L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class> E<mdash> if it's available, L<LWP::UserAgent> if not. You don't have to set
+it. I recommend that you do B<not> override it. You can with any well behaved L<LWP::UserAgent>. You probably should not.
+L<LWPx::ParanoidAgent> buys you many defenses and extra security checks. When you allow your application users freedom to initiate external
+requests, you open an avenue for DoS (denial of service) attacks. L<LWPx::ParanoidAgent> defends against this. L<LWP::UserAgent> and any
+regular subclass of it will not.
 
 =item consumer_secret
 
-The underlying L<Net::OpenID::Consumer> object is seeded with a
-secret. If it's important to you to set your own, you can. The default
-uses this package name + its version + the sorted configuration keys
-of your Catalyst application (chopped at 255 characters if it's
-longer). This should generally be superior to any fixed string.
+The underlying L<Net::OpenID::Consumer> object is seeded with a secret. If it's important to you to set your own, you can. The default uses
+this package name + its version + the sorted configuration keys of your Catalyst application (chopped at 255 characters if it's longer).
+This should generally be superior to any fixed string.
 
 =back
 
@@ -469,13 +485,10 @@ Option to suppress fatals.
 
 Support more of the new methods in the L<Net::OpenID> kit.
 
-There are some interesting implications with this sort of setup. Does
-a user aggregate realms or can a user be signed in under more than one
-realm? The documents could contain a recipe of the self-answering
-OpenID end-point that is in the tests.
+There are some interesting implications with this sort of setup. Does a user aggregate realms or can a user be signed in under more than one
+realm? The documents could contain a recipe of the self-answering OpenID end-point that is in the tests.
 
-Debug statements need to be both expanded and limited via realm
-configuration.
+Debug statements need to be both expanded and limited via realm configuration.
 
 Better diagnostics in errors. Debug info at all consumer calls.
 
@@ -495,26 +508,17 @@ This module is free software; you can redistribute it and modify it under the sa
 
 =head1 DISCLAIMER OF WARRANTY
 
-Because this software is licensed free of charge, there is no warranty
-for the software, to the extent permitted by applicable law. Except when
-otherwise stated in writing the copyright holders and other parties
-provide the software "as is" without warranty of any kind, either
-expressed or implied, including, but not limited to, the implied
-warranties of merchantability and fitness for a particular purpose. The
-entire risk as to the quality and performance of the software is with
-you. Should the software prove defective, you assume the cost of all
+Because this software is licensed free of charge, there is no warranty for the software, to the extent permitted by applicable law. Except
+when otherwise stated in writing the copyright holders and other parties provide the software "as is" without warranty of any kind, either
+expressed or implied, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose. The
+entire risk as to the quality and performance of the software is with you. Should the software prove defective, you assume the cost of all
 necessary servicing, repair, or correction.
 
-In no event unless required by applicable law or agreed to in writing
-will any copyright holder, or any other party who may modify or
-redistribute the software as permitted by the above license, be
-liable to you for damages, including any general, special, incidental,
-or consequential damages arising out of the use or inability to use
-the software (including but not limited to loss of data or data being
-rendered inaccurate or losses sustained by you or third parties or a
-failure of the software to operate with any other software), even if
-such holder or other party has been advised of the possibility of
-such damages.
+In no event unless required by applicable law or agreed to in writing will any copyright holder, or any other party who may modify or
+redistribute the software as permitted by the above license, be liable to you for damages, including any general, special, incidental, or
+consequential damages arising out of the use or inability to use the software (including but not limited to loss of data or data being
+rendered inaccurate or losses sustained by you or third parties or a failure of the software to operate with any other software), even if
+such holder or other party has been advised of the possibility of such damages.
 
 =head1 SEE ALSO
 
@@ -522,11 +526,13 @@ such damages.
 
 =item OpenID
 
-L<Net::OpenID::Server>, L<Net::OpenID::VerifiedIdentity>, L<Net::OpenID::Consumer>, L<http://openid.net/>, L<http://openid.net/developers/specs/>, and L<http://openid.net/extensions/sreg/1.1>.
+L<Net::OpenID::Server>, L<Net::OpenID::VerifiedIdentity>, L<Net::OpenID::Consumer>, L<http://openid.net/>,
+L<http://openid.net/developers/specs/>, and L<http://openid.net/extensions/sreg/1.1>.
 
 =item Catalyst Authentication
 
-L<Catalyst>, L<Catalyst::Plugin::Authentication>, L<Catalyst::Manual::Tutorial::Authorization>, and L<Catalyst::Manual::Tutorial::Authentication>.
+L<Catalyst>, L<Catalyst::Plugin::Authentication>, L<Catalyst::Manual::Tutorial::Authorization>, and
+L<Catalyst::Manual::Tutorial::Authentication>.
 
 =item Catalyst Configuration
 
