@@ -7,11 +7,25 @@ use IO::Socket;
 use Test::More;
 use Test::WWW::Mechanize;
 
-plan skip_all => 'set TEST_HTTP to enable this test' unless $ENV{TEST_HTTP};
-eval "use Catalyst::Devel 1.0";
-plan skip_all => 'Catalyst::Devel required' if $@;
+eval <<_DEPS_;
+   use Catalyst::Runtime 5.7;
+   use Catalyst::Devel 1.0;
+   use Cache::FastMmap;
+   use Catalyst::Authentication::User::Hash;
+   use Catalyst::Plugin::Session::State::Cookie;
+   use Catalyst::Plugin::Session::Store::FastMmap;
+   use Class::Accessor::Fast;
+   use Crypt::DH;
+   use ExtUtils::MakeMaker;
+   use HTML::Parser 3;
+   use LWP::UserAgent;
+   use Net::OpenID::Consumer;
+   use Net::OpenID::Server;
+   use Test::WWW::Mechanize;
+_DEPS_
 
-# plan "no_plan";
+plan skip_all => 'Test application dependencies not satisfied' if $@;
+
 plan tests => 21;
 
 # One port for consumer app, one for provider.

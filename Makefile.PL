@@ -23,6 +23,8 @@ recommends "YAML"        => "0.6";
 recommends "Math::BigInt"    => undef;
 recommends "LWPx::ParanoidAgent" => "1.03";
 
+test_requires "Catalyst::Engine::HTTP";
+
 test_requires "Test::More"      => "0.42";
 test_requires "Net::OpenID::Server" => "1.02";
 test_requires "Test::WWW::Mechanize" => "1.20";

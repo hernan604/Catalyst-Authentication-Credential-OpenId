@@ -7,7 +7,7 @@ BEGIN {
     __PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
 }
 
-our $VERSION = "0.14_03";
+our $VERSION = "0.14_04";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
