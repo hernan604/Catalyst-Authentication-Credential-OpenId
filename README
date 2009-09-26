@@ -3,7 +3,7 @@ NAME
     Catalyst::Plugin::Authentication framework.
 
 VERSION
-    0.14_03
+    0.14_05
 
 BACKWARDS COMPATIBILITY CHANGES
   EXTENTION_ARGS v EXTENSIONS

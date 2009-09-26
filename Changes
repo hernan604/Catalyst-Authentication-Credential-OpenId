@@ -1,6 +1,6 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
-0.14.05 Sat Sep  5 12:53:05 PDT 2009
+0.14.05 Sat Sep 26 16:17:15 PDT 2009
       - Moving live-app.t back to on demand and only if everything is
         there to even try.
       
