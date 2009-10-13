@@ -7,7 +7,7 @@ BEGIN {
     __PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
 }
 
-our $VERSION = "0.14_05";
+our $VERSION = "0.15";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
@@ -161,13 +161,13 @@ Catalyst::Authentication::Credential::OpenID - OpenID credential for Catalyst::P
 
 =head1 VERSION
 
-0.14_05
+0.15
 
 =head1 BACKWARDS COMPATIBILITY CHANGES
 
-=head2 EXTENTION_ARGS v EXTENSIONS
+=head2 EXTENSION_ARGS v EXTENSIONS
 
-B<NB>: The extenstions were previously configured under the key C<extension_args>. They are now configured under C<extensions>. This prevents the need for double configuration but it breaks extensions in your application if you do not change the name. The old version is supported for now but may be phased out at any time.
+B<NB>: The extensions were previously configured under the key C<extension_args>. They are now configured under C<extensions>. This prevents the need for double configuration but it breaks extensions in your application if you do not change the name. The old version is supported for now but may be phased out at any time.
 
 As previously noted, L</EXTENSIONS TO OPENID>, I have not tested the extensions. I would be grateful for any feedback or, better, tests.
 
@@ -194,8 +194,8 @@ Somewhere in myapp.conf-
          <openid>
              <credential>
                  class   OpenID
+                 ua_class   LWP::UserAgent
              </credential>
-             ua_class   LWP::UserAgent
          </openid>
      </realms>
  </Plugin::Authentication>
@@ -208,7 +208,7 @@ Or in your myapp.yml if you're using L<YAML> instead-
      openid:
        credential:
          class: OpenID
-       ua_class: LWP::UserAgent
+         ua_class: LWP::UserAgent
 
 In a controller, perhaps C<Root::openid>-
 
@@ -353,24 +353,25 @@ clear text passwords and one called "openid" which uses... uh, OpenID.
                           }
               },
               openid => {
-                  consumer_secret => "Don't bother setting",
-                  ua_class => "LWP::UserAgent",
-                  ua_args => {
-                      whitelisted_hosts => [qw/ 127.0.0.1 localhost /],
-                  },
                   credential => {
                       class => "OpenID",
                       store => {
                           class => "OpenID",
                       },
-                  },
-                  extensions => [
-                      'http://openid.net/extensions/sreg/1.1',
-                      {
-                       required => 'email',
-                       optional => 'fullname,nickname,timezone',
+                      consumer_secret => "Don't bother setting",
+                      ua_class => "LWP::UserAgent",
+                      # whitelist is only relevant for LWPx::ParanoidAgent
+                      ua_args => {
+                          whitelisted_hosts => [qw/ 127.0.0.1 localhost /],
                       },
-                  ],
+                      extensions => [
+                          'http://openid.net/extensions/sreg/1.1',
+                          {
+                           required => 'email',
+                           optional => 'fullname,nickname,timezone',
+                          },
+                      ],
+                  },
               },
           },
       }
@@ -398,23 +399,23 @@ This is the same configuration in the default L<Catalyst> configuration format f
              </credential>
          </members>
          <openid>
-             <ua_args>
-                 whitelisted_hosts   127.0.0.1
-                 whitelisted_hosts   localhost
-             </ua_args>
-             consumer_secret   Don't bother setting
-             ua_class   LWP::UserAgent
              <credential>
                  <store>
                      class   OpenID
                  </store>
                  class   OpenID
+                 <ua_args>
+                     whitelisted_hosts   127.0.0.1
+                     whitelisted_hosts   localhost
+                 </ua_args>
+                 consumer_secret   Don't bother setting
+                 ua_class   LWP::UserAgent
+                 <extensions>
+                     http://openid.net/extensions/sreg/1.1
+                     required   email
+                     optional   fullname,nickname,timezone
+                 </extensions>
              </credential>
-             <extensions>
-                 http://openid.net/extensions/sreg/1.1
-                 required   email
-                 optional   fullname,nickname,timezone
-             </extensions>
          </openid>
      </realms>
  </Plugin::Authentication>
@@ -440,16 +441,17 @@ And now, the same configuration in L<YAML>. B<NB>: L<YAML> is whitespace sensiti
          class: OpenID
          store:
            class: OpenID
-       consumer_secret: Don't bother setting
-       ua_class: LWP::UserAgent
-       ua_args:
-         whitelisted_hosts:
-           - 127.0.0.1
-           - localhost
-       extensions:
-           - http://openid.net/extensions/sreg/1.1
-           - required: email
-             optional: fullname,nickname,timezone
+         consumer_secret: Don't bother setting
+         ua_class: LWP::UserAgent
+         ua_args:
+           # whitelist is only relevant for LWPx::ParanoidAgent
+           whitelisted_hosts:
+             - 127.0.0.1
+             - localhost
+         extensions:
+             - http://openid.net/extensions/sreg/1.1
+             - required: email
+               optional: fullname,nickname,timezone
 
 B<NB>: There is no OpenID store yet.
 
@@ -458,10 +460,6 @@ B<NB>: There is no OpenID store yet.
 The Simple Registration--L<http://openid.net/extensions/sreg/1.1>--(SREG) extension to OpenID is supported in the L<Net::OpenID> family now. Experimental support for it is included here as of v0.12. SREG is the only supported extension in OpenID 1.1. It's experimental in the sense it's a new interface and barely tested. Support for OpenID extensions is here to stay.
 
 =head2 MORE ON CONFIGURATION
-
-These are set in your realm. See above.
-
-=over 4
 
 =item ua_args and ua_class
 

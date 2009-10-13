@@ -1,6 +1,10 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
-0.14.05 Sat Sep 26 16:17:15 PDT 2009
+0.15  Mon Oct 12 18:18:21 PDT 2009
+      - Patches from Zbigniew Lukasiak to correct inappropriate configuaration settings applied.
+      - Spelling fixes, argument clarification in Pod.
+
+0.14_05 Sat Sep 26 16:17:15 PDT 2009
       - Moving live-app.t back to on demand and only if everything is
         there to even try.
       

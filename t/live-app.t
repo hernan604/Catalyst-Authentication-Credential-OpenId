@@ -31,7 +31,7 @@ if ( $@ )
 }
 elsif ( not $ENV{TEST_HTTP} )
 {
-    plan skip_all => 'set TEST_HTTP to enable this test';
+    plan skip_all => 'Set TEST_HTTP to enable this test';
 }
 else
 {

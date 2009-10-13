@@ -3,11 +3,11 @@ NAME
     Catalyst::Plugin::Authentication framework.
 
 VERSION
-    0.14_05
+    0.15
 
 BACKWARDS COMPATIBILITY CHANGES
-  EXTENTION_ARGS v EXTENSIONS
-    NB: The extenstions were previously configured under the key
+  EXTENSION_ARGS v EXTENSIONS
+    NB: The extensions were previously configured under the key
     "extension_args". They are now configured under "extensions". This
     prevents the need for double configuration but it breaks extensions in
     your application if you do not change the name. The old version is
@@ -42,8 +42,8 @@ SYNOPSIS
              <openid>
                  <credential>
                      class   OpenID
+                     ua_class   LWP::UserAgent
                  </credential>
-                 ua_class   LWP::UserAgent
              </openid>
          </realms>
      </Plugin::Authentication>
@@ -56,7 +56,7 @@ SYNOPSIS
          openid:
            credential:
              class: OpenID
-           ua_class: LWP::UserAgent
+             ua_class: LWP::UserAgent
 
     In a controller, perhaps "Root::openid"-
 
@@ -179,24 +179,25 @@ CONFIGURATION
                               }
                   },
                   openid => {
-                      consumer_secret => "Don't bother setting",
-                      ua_class => "LWP::UserAgent",
-                      ua_args => {
-                          whitelisted_hosts => [qw/ 127.0.0.1 localhost /],
-                      },
                       credential => {
                           class => "OpenID",
                           store => {
                               class => "OpenID",
                           },
-                      },
-                      extensions => [
-                          'http://openid.net/extensions/sreg/1.1',
-                          {
-                           required => 'email',
-                           optional => 'fullname,nickname,timezone',
+                          consumer_secret => "Don't bother setting",
+                          ua_class => "LWP::UserAgent",
+                          # whitelist is only relevant for LWPx::ParanoidAgent
+                          ua_args => {
+                              whitelisted_hosts => [qw/ 127.0.0.1 localhost /],
                           },
-                      ],
+                          extensions => [
+                              'http://openid.net/extensions/sreg/1.1',
+                              {
+                               required => 'email',
+                               optional => 'fullname,nickname,timezone',
+                              },
+                          ],
+                      },
                   },
               },
           }
@@ -225,23 +226,23 @@ CONFIGURATION
                  </credential>
              </members>
              <openid>
-                 <ua_args>
-                     whitelisted_hosts   127.0.0.1
-                     whitelisted_hosts   localhost
-                 </ua_args>
-                 consumer_secret   Don't bother setting
-                 ua_class   LWP::UserAgent
                  <credential>
                      <store>
                          class   OpenID
                      </store>
                      class   OpenID
+                     <ua_args>
+                         whitelisted_hosts   127.0.0.1
+                         whitelisted_hosts   localhost
+                     </ua_args>
+                     consumer_secret   Don't bother setting
+                     ua_class   LWP::UserAgent
+                     <extensions>
+                         http://openid.net/extensions/sreg/1.1
+                         required   email
+                         optional   fullname,nickname,timezone
+                     </extensions>
                  </credential>
-                 <extensions>
-                     http://openid.net/extensions/sreg/1.1
-                     required   email
-                     optional   fullname,nickname,timezone
-                 </extensions>
              </openid>
          </realms>
      </Plugin::Authentication>
@@ -268,16 +269,17 @@ CONFIGURATION
              class: OpenID
              store:
                class: OpenID
-           consumer_secret: Don't bother setting
-           ua_class: LWP::UserAgent
-           ua_args:
-             whitelisted_hosts:
-               - 127.0.0.1
-               - localhost
-           extensions:
-               - http://openid.net/extensions/sreg/1.1
-               - required: email
-                 optional: fullname,nickname,timezone
+             consumer_secret: Don't bother setting
+             ua_class: LWP::UserAgent
+             ua_args:
+               # whitelist is only relevant for LWPx::ParanoidAgent
+               whitelisted_hosts:
+                 - 127.0.0.1
+                 - localhost
+             extensions:
+                 - http://openid.net/extensions/sreg/1.1
+                 - required: email
+                   optional: fullname,nickname,timezone
 
     NB: There is no OpenID store yet.
 
@@ -290,8 +292,6 @@ CONFIGURATION
     here to stay.
 
   MORE ON CONFIGURATION
-    These are set in your realm. See above.
-
     ua_args and ua_class
         LWPx::ParanoidAgent is the default agent — "ua_class" — if it's
         available, LWP::UserAgent if not. You don't have to set it. I
@@ -383,4 +383,11 @@ SEE ALSO
 
     Miscellaneous
         Catalyst::Manual::Tutorial, Template, LWPx::ParanoidAgent.
+
+POD ERRORS
+    Hey! The above document had some coding errors, which are explained
+    below:
+
+    Around line 464:
+        '=item' outside of any '=over'
 
