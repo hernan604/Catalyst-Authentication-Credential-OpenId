@@ -461,6 +461,8 @@ The Simple Registration--L<http://openid.net/extensions/sreg/1.1>--(SREG) extens
 
 =head2 MORE ON CONFIGURATION
 
+=over
+
 =item ua_args and ua_class
 
 L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class> E<mdash> if it's available, L<LWP::UserAgent> if not. You don't have to set
