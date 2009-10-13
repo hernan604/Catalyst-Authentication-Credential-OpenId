@@ -1,5 +1,8 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
+0.16  Tue Oct 13 07:39:18 PDT 2009
+      - Quick fix to dependencies and Pod to get CPAN testers passing.
+
 0.15  Mon Oct 12 18:18:21 PDT 2009
       - Patches from Zbigniew Lukasiak to correct inappropriate configuaration settings applied.
       - Spelling fixes, argument clarification in Pod.

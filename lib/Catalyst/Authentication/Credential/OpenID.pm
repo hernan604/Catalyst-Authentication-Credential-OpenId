@@ -7,7 +7,7 @@ BEGIN {
     __PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
 }
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
@@ -161,7 +161,7 @@ Catalyst::Authentication::Credential::OpenID - OpenID credential for Catalyst::P
 
 =head1 VERSION
 
-0.15
+0.16
 
 =head1 BACKWARDS COMPATIBILITY CHANGES
 
@@ -461,7 +461,7 @@ The Simple Registration--L<http://openid.net/extensions/sreg/1.1>--(SREG) extens
 
 =head2 MORE ON CONFIGURATION
 
-=over
+=over 4
 
 =item ua_args and ua_class
 

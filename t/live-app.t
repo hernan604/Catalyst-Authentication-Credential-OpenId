@@ -4,9 +4,9 @@ use warnings;
 use FindBin;
 use IO::Socket;
 use Test::More;
-use Test::WWW::Mechanize;
 
 eval <<_DEPS_;
+   use Test::WWW::Mechanize;
    use Catalyst::Runtime;
    use Catalyst::Devel;
    use Cache::FastMmap;
