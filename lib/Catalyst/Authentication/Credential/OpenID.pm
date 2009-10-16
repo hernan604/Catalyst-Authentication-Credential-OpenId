@@ -1,18 +1,16 @@
 package Catalyst::Authentication::Credential::OpenID;
 use strict;
-# use warnings; no warnings "uninitialized"; # for testing, not production
-use parent "Class::Accessor::Fast";
+use warnings;
+use base "Class::Accessor::Fast";
 
-BEGIN {
-    __PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
-}
+__PACKAGE__->mk_accessors(qw/ _config realm debug secret /);
 
 our $VERSION = "0.16";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
 
-sub new : method {
+sub new {
     my ( $class, $config, $c, $realm ) = @_;
     my $self = { _config => { %{ $config },
                               %{ $realm->{config} }
@@ -47,7 +45,7 @@ sub new : method {
     return $self;
 }
 
-sub authenticate : method {
+sub authenticate {
     my ( $self, $c, $realm, $authinfo ) = @_;
 
     $c->log->debug("authenticate() called from " . $c->request->uri) if $self->debug;

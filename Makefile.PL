@@ -1,10 +1,11 @@
 use inc::Module::Install 0.87;
+use strict;
+use warnings;
 
 name      "Catalyst-Authentication-Credential-OpenID";
 all_from  "lib/Catalyst/Authentication/Credential/OpenID.pm";
-author    "Ashley Pond V <ashley@cpan.org>";
+author    "Ashley Pond V <ashley\@cpan.org>";
 
-requires "parent"        => "0.2";
 requires "Class::Accessor::Fast" => undef;
 requires "HTML::Parser"     => "3";
 requires "LWP::UserAgent"    => undef;
