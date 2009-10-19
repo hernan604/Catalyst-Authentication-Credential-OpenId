@@ -96,7 +96,7 @@ sub authenticate {
             else
             {
                 $c->log->error($csr->err . " -- $claimed_uri");
-                $c->detach();
+                return;
             }
         }
 
