@@ -1,10 +1,17 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
+0.16_01  Tue Apr  6 19:50:55 PDT 2010
+      - extension_args are no longer honored as deprecated synonym for
+        extensions.
+      - extensions is now a hash ref which facilitates multiple
+        extensions being allowed; suggested by TREVELYAN.
+      - trust_root URI suggested by EVDB.
+
 0.16  Tue Oct 13 07:39:18 PDT 2009
       - Quick fix to dependencies and Pod to get CPAN testers passing.
 
 0.15  Mon Oct 12 18:18:21 PDT 2009
-      - Patches from Zbigniew Lukasiak to correct inappropriate configuaration settings applied.
+      - Patches from Zbigniew Lukasiak to correct inappropriate configuration settings applied.
       - Spelling fixes, argument clarification in Pod.
 
 0.14_05 Sat Sep 26 16:17:15 PDT 2009
@@ -29,7 +36,7 @@ Revision history for Catalyst::Authentication::Credential::OpenID
         usage; CPAN testers found it.
       - Changed use of LWPx::PA when a ua_class isn't set to test for
         its successful eval and to use LWP::UserAgent on failure.
-      - Rearranged the extensions and extention_args so there is no
+      - Rearranged the extensions and extension_args so there is no
         duplication necessary in the config.
 
 0.14  Tue Aug 18 22:37:51 PDT 2009

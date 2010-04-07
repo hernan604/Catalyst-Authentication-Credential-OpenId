@@ -1,6 +1,6 @@
 package Catalyst::Authentication::Credential::OpenID;
-use strict;
 use warnings;
+use strict;
 use base "Class::Accessor::Fast";
 
 __PACKAGE__->mk_accessors(qw/
@@ -12,9 +12,10 @@ __PACKAGE__->mk_accessors(qw/
     extension_args
     errors_are_fatal
     extensions
+    trust_root
 /);
 
-our $VERSION = "0.16";
+our $VERSION = "0.16_01";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
@@ -22,19 +23,19 @@ use Catalyst::Exception ();
 sub new {
     my ( $class, $config, $c, $realm ) = @_;
     my $self = {
-                    %{ $config },
-                    %{ $realm->{config} }
-                 };
+                %{ $config },
+                %{ $realm->{config} }
+               };
     bless $self, $class;
 
     # 2.0 spec says "SHOULD" be named "openid_identifier."
     $self->{openid_field} ||= "openid_identifier";
 
     my $secret = $self->{consumer_secret} ||= join("+",
-                                                            __PACKAGE__,
-                                                            $VERSION,
-                                                            sort keys %{ $c->config }
-                                                            );
+                                                   __PACKAGE__,
+                                                   $VERSION,
+                                                   sort keys %{ $c->config }
+                                                  );
 
     $secret = substr($secret,0,255) if length $secret > 255;
     $self->secret($secret);
@@ -72,19 +73,18 @@ sub authenticate {
         consumer_secret => $self->secret,
     );
 
-    if ( $self->extension_args and $self->debug )
+    if ( $self->extension_args )
     {
-        # FIXME - Only on startup, remove extension_args accessor
-        $c->log->warn("The configuration key 'extension_args' is deprecated; use 'extensions'");
+        $c->log->warn("The configuration key 'extension_args' is ignored; use 'extensions'");
     }
 
-    my @extensions = $self->extensions ?
-        @{ $self->extensions } : $self->extension_args ?
-        @{ $self->extension_args } : ();
+    my %extensions = ref($self->extensions) eq "HASH" ?
+        %{ $self->extensions } : ref($self->extensions) eq "ARRAY" ?
+        @{ $self->extensions } : ();
 
     if ( $claimed_uri )
     {
-        my $current = $c->uri_for($c->req->uri->path); # clear query/fragment...
+        my $current = $c->uri_for("/" . $c->req->path); # clear query/fragment...
 
         my $identity = $csr->claimed_identity($claimed_uri);
         unless ( $identity )
@@ -100,12 +100,14 @@ sub authenticate {
             }
         }
 
-        $identity->set_extension_args(@extensions)
-            if @extensions;
+        for my $key ( keys %extensions )
+        {
+            $identity->set_extension_args($key, $extensions{$key});
+        }
 
         my $check_url = $identity->check_url(
             return_to  => $current . '?openid-check=1',
-            trust_root => $current,
+            trust_root => $self->trust_root || $current,
             delayed_return => 1,
         );
         $c->res->redirect($check_url);
@@ -128,8 +130,8 @@ sub authenticate {
             my $user = +{ map { $_ => scalar $identity->$_ }
                 qw( url display rss atom foaf declared_rss declared_atom declared_foaf foafmaker ) };
             # Dude, I did not design the array as hash spec. Don't curse me [apv].
-            my %flat = @extensions;
-            for my $key ( keys %flat )
+
+            for my $key ( keys %extensions )
             {
                 $user->{extensions}->{$key} = $identity->signed_extension_fields($key);
             }
@@ -167,13 +169,13 @@ Catalyst::Authentication::Credential::OpenID - OpenID credential for Catalyst::P
 
 =head1 VERSION
 
-0.16
+0.16_01
 
 =head1 BACKWARDS COMPATIBILITY CHANGES
 
 =head2 EXTENSION_ARGS v EXTENSIONS
 
-B<NB>: The extensions were previously configured under the key C<extension_args>. They are now configured under C<extensions>. This prevents the need for double configuration but it breaks extensions in your application if you do not change the name. The old version is supported for now but may be phased out at any time.
+B<NB>: The extensions were previously configured under the key C<extension_args>. They are now configured under C<extensions>. C<extension_args> is no longer honored.
 
 As previously noted, L</EXTENSIONS TO OPENID>, I have not tested the extensions. I would be grateful for any feedback or, better, tests.
 
@@ -461,9 +463,47 @@ And now, the same configuration in L<YAML>. B<NB>: L<YAML> is whitespace sensiti
 
 B<NB>: There is no OpenID store yet.
 
+You can set C<trust_root> now too. This is experimental and I have no idea if it's right or could be better. Right now it must be a URI. It was submitted as a path but this seems to limit it to the Catalyst app and while easier to dynamically generate no matter where the app starts, it seems like the wrong way to go. Let me know if that's mistaken.
+
 =head2 EXTENSIONS TO OPENID
 
 The Simple Registration--L<http://openid.net/extensions/sreg/1.1>--(SREG) extension to OpenID is supported in the L<Net::OpenID> family now. Experimental support for it is included here as of v0.12. SREG is the only supported extension in OpenID 1.1. It's experimental in the sense it's a new interface and barely tested. Support for OpenID extensions is here to stay.
+
+Google's OpenID is also now supported. Uh, I think.
+
+Here is a snippet from Thorben JE<auml>ndling combining Sreg and Google's extenstionsE<ndash>
+
+ 'Plugin::Authentication' => {
+    openid => {
+        credential => {
+            class => 'OpenID',
+            ua_class => 'LWP::UserAgent',
+            extensions => {
+                'http://openid.net/extensions/sreg/1.1' => {
+                    required => 'nickname,email,fullname',
+                    optional => 'timezone,language,dob,country,gender'
+                },
+                'http://openid.net/srv/ax/1.0' => {
+                    mode => 'fetch_request',
+                    'type.nickname' => 'http://axschema.org/namePerson/friendly',
+                    'type.email' => 'http://axschema.org/contact/email',
+                    'type.fullname' => 'http://axschema.org/namePerson',
+                    'type.firstname' => 'http://axschema.org/namePerson/first',
+                    'type.lastname' => 'http://axschema.org/namePerson/last',
+                    'type.dob' => 'http://axschema.org/birthDate',
+                    'type.gender' => 'http://axschema.org/person/gender',
+                    'type.country' => 'http://axschema.org/contact/country/home',
+                    'type.language' => 'http://axschema.org/pref/language',
+                    'type.timezone' => 'http://axschema.org/pref/timezone',
+                    required => 'nickname,fullname,email,firstname,lastname',
+                    if_available => 'dob,gender,country,language,timezone',
+            },
+            },
+        },
+    },
+    default_realm => 'openid',
+ };
+
 
 =head2 MORE ON CONFIGURATION
 
@@ -471,17 +511,11 @@ The Simple Registration--L<http://openid.net/extensions/sreg/1.1>--(SREG) extens
 
 =item ua_args and ua_class
 
-L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class> E<mdash> if it's available, L<LWP::UserAgent> if not. You don't have to set
-it. I recommend that you do B<not> override it. You can with any well behaved L<LWP::UserAgent>. You probably should not.
-L<LWPx::ParanoidAgent> buys you many defenses and extra security checks. When you allow your application users freedom to initiate external
-requests, you open an avenue for DoS (denial of service) attacks. L<LWPx::ParanoidAgent> defends against this. L<LWP::UserAgent> and any
-regular subclass of it will not.
+L<LWPx::ParanoidAgent> is the default agent E<mdash> C<ua_class> E<mdash> if it's available, L<LWP::UserAgent> if not. You don't have to set it. I recommend that you do B<not> override it. You can with any well behaved L<LWP::UserAgent>. You probably should not. L<LWPx::ParanoidAgent> buys you many defenses and extra security checks. When you allow your application users freedom to initiate external requests, you open an avenue for DoS (denial of service) attacks. L<LWPx::ParanoidAgent> defends against this. L<LWP::UserAgent> and any regular subclass of it will not.
 
 =item consumer_secret
 
-The underlying L<Net::OpenID::Consumer> object is seeded with a secret. If it's important to you to set your own, you can. The default uses
-this package name + its version + the sorted configuration keys of your Catalyst application (chopped at 255 characters if it's longer).
-This should generally be superior to any fixed string.
+The underlying L<Net::OpenID::Consumer> object is seeded with a secret. If it's important to you to set your own, you can. The default uses this package name + its version + the sorted configuration keys of your Catalyst application (chopped at 255 characters if it's longer). This should generally be superior to any fixed string.
 
 =back
 
@@ -491,8 +525,7 @@ Option to suppress fatals.
 
 Support more of the new methods in the L<Net::OpenID> kit.
 
-There are some interesting implications with this sort of setup. Does a user aggregate realms or can a user be signed in under more than one
-realm? The documents could contain a recipe of the self-answering OpenID end-point that is in the tests.
+There are some interesting implications with this sort of setup. Does a user aggregate realms or can a user be signed in under more than one realm? The documents could contain a recipe of the self-answering OpenID end-point that is in the tests.
 
 Debug statements need to be both expanded and limited via realm configuration.
 
