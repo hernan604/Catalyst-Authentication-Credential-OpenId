@@ -1,6 +1,11 @@
 Revision history for Catalyst::Authentication::Credential::OpenID
 
-0.16_01  Tue Apr  6 19:50:55 PDT 2010
+0.16_02 Fri Oct 15 18:54:24 PDT 2010
+      - Experimental, undocumented flatten_extensions_into_user added
+        which flattens the namespaced key vals from extensions into
+        the user object.
+
+0.16_01 Tue Apr  6 19:50:55 PDT 2010
       - extension_args are no longer honored as deprecated synonym for
         extensions.
       - extensions is now a hash ref which facilitates multiple

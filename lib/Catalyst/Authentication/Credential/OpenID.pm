@@ -13,9 +13,10 @@ __PACKAGE__->mk_accessors(qw/
     errors_are_fatal
     extensions
     trust_root
+    flatten_extensions_into_user
 /);
 
-our $VERSION = "0.16_01";
+our $VERSION = "0.16_02";
 
 use Net::OpenID::Consumer;
 use Catalyst::Exception ();
@@ -130,10 +131,14 @@ sub authenticate {
             my $user = +{ map { $_ => scalar $identity->$_ }
                 qw( url display rss atom foaf declared_rss declared_atom declared_foaf foafmaker ) };
             # Dude, I did not design the array as hash spec. Don't curse me [apv].
-
             for my $key ( keys %extensions )
             {
-                $user->{extensions}->{$key} = $identity->signed_extension_fields($key);
+                my $vals = $identity->signed_extension_fields($key);
+                $user->{extensions}->{$key} = $vals;
+                if ( $self->flatten_extensions_into_user )
+                {
+                    $user->{$_} = $vals->{$_} for keys %{$vals};
+                }
             }
 
             my $user_obj = $realm->find_user($user, $c);
